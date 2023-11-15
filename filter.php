@@ -65,7 +65,14 @@ class filter_leeloolxp_ai extends moodle_text_filter {
      * @see filter_manager::apply_filter_chain()
      */
     public function filter($text, array $options = array()) {
-        if (strpos($text, '{{LEELOOLXP_AI_DATA}}') === false) {
+
+        if (
+            strpos($text, '{{LEELOOLXP_ASSIGNMENT_DATA}}') === false
+            && strpos($text, '{{LEELOOLXP_QUESTION_TEXT_') === false
+            && strpos($text, '{{LEELOOLXP_QUESTION_FEEDBACK_') === false
+            && strpos($text, '{{LEELOOLXP_ANSWER_TEXT_') === false
+            && strpos($text, '{{LEELOOLXP_ANSWER_FEEDBACK_') === false
+        ) {
             return $text;
         }
 
@@ -134,11 +141,64 @@ class filter_leeloolxp_ai extends moodle_text_filter {
                 // Load the template and pass the data
                 $content = $this->loadTemplate('template_assignment.php', $dataForTemplate);
 
-                $text = str_replace('{{LEELOOLXP_AI_DATA}}', $content, $text);
+                $text = str_replace('{{LEELOOLXP_ASSIGNMENT_DATA}}', $content, $text);
 
                 $extdb->dispose();
 
                 return $text;
+            }
+
+            if ($cm && $cm->modname == 'quiz') {
+
+                $extdb = $this->connect_leeloo_db();
+
+                if (strpos($text, '{{LEELOOLXP_QUESTION_TEXT_') !== false) {
+                    $id_text = str_replace('{{LEELOOLXP_QUESTION_TEXT_', '', $text);
+                    $idQuestion = str_replace('}}', '', $id_text);
+
+                    $sql = "SELECT question_text FROM questions_data WHERE questionid = ?";
+                    $question_data = $extdb->get_record_sql($sql, array($idQuestion));
+
+                    $text = str_replace($idQuestion . '}}', '', $text);
+                    $text = str_replace('{{LEELOOLXP_QUESTION_TEXT_', $question_data->question_text, $text);
+                    return $text;
+                }
+
+                if (strpos($text, '{{LEELOOLXP_QUESTION_FEEDBACK_') !== false) {
+                    $id_text = str_replace('{{LEELOOLXP_QUESTION_FEEDBACK_', '', $text);
+                    $idQuestion = str_replace('}}', '', $id_text);
+
+                    $sql = "SELECT explanation FROM questions_data WHERE questionid = ?";
+                    $question_data = $extdb->get_record_sql($sql, array($idQuestion));
+
+                    $text = str_replace($idQuestion . '}}', '', $text);
+                    $text = str_replace('{{LEELOOLXP_QUESTION_FEEDBACK_', $question_data->explanation, $text);
+                    return $text;
+                }
+
+                if (strpos($text, '{{LEELOOLXP_ANSWER_TEXT_') !== false) {
+                    $id_text = str_replace('{{LEELOOLXP_ANSWER_TEXT_', '', $text);
+                    $idQuestion = str_replace('}}', '', $id_text);
+
+                    $sql = "SELECT answer_text FROM question_answers_data WHERE answerid = ?";
+                    $question_data = $extdb->get_record_sql($sql, array($idQuestion));
+
+                    $text = str_replace($idQuestion . '}}', '', $text);
+                    $text = str_replace('{{LEELOOLXP_ANSWER_TEXT_', $question_data->answer_text, $text);
+                    return $text;
+                }
+
+                if (strpos($text, '{{LEELOOLXP_ANSWER_FEEDBACK_') !== false) {
+                    $id_text = str_replace('{{LEELOOLXP_ANSWER_FEEDBACK_', '', $text);
+                    $idQuestion = str_replace('}}', '', $id_text);
+
+                    $sql = "SELECT explanation FROM question_answers_data WHERE answerid = ?";
+                    $question_data = $extdb->get_record_sql($sql, array($idQuestion));
+
+                    $text = str_replace($idQuestion . '}}', '', $text);
+                    $text = str_replace('{{LEELOOLXP_ANSWER_FEEDBACK_', $question_data->explanation, $text);
+                    return $text;
+                }
             }
         }
 
